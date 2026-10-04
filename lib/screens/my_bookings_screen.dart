@@ -603,140 +603,33 @@ class _MyBookingsScreenState
   // =========================================================
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
+    const navy = Color(0xFF0D1726);
+    const gold = Color(0xFFD7A84B);
     return Directionality(
-      textDirection:
-          TextDirection.rtl,
+      textDirection: TextDirection.rtl,
       child: Scaffold(
+        backgroundColor: const Color(0xFFF5F6F8),
         appBar: AppBar(
-          title: const Text(
-            'حجوزاتي',
-            style: TextStyle(
-              fontWeight:
-                  FontWeight.w900,
-            ),
-          ),
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.white,
+          elevation: 0,
           centerTitle: true,
-          actions: [
-            IconButton(
-              tooltip:
-                  'تحديث',
-              onPressed:
-                  _loading
-                      ? null
-                      : _loadBookings,
-              icon:
-                  const Icon(
-                Icons.refresh,
-              ),
-            ),
-          ],
+          title: const Text('حجوزاتي', style: TextStyle(color: navy, fontWeight: FontWeight.w900)),
+          actions: [IconButton(onPressed: _loading ? null : _loadBookings, icon: const Icon(Icons.refresh_rounded, color: navy))],
         ),
-
-        // =====================================================
-        // BODY
-        // =====================================================
-
         body: RefreshIndicator(
-          onRefresh:
-              _loadBookings,
+          color: gold,
+          onRefresh: _loadBookings,
           child: _loading
-              ? const Center(
-                  child:
-                      CircularProgressIndicator(),
-                )
+              ? const Center(child: CircularProgressIndicator(color: gold))
               : _bookings.isEmpty
-                  ? ListView(
-                      physics:
-                          const AlwaysScrollableScrollPhysics(),
-                      children: [
-                        const SizedBox(
-                          height: 130,
-                        ),
-                        Icon(
-                          Icons
-                              .receipt_long_outlined,
-                          size: 80,
-                          color: Colors
-                              .grey
-                              .shade400,
-                        ),
-                        const SizedBox(
-                          height: 20,
-                        ),
-                        const Text(
-                          'لا توجد حجوزات',
-                          textAlign:
-                              TextAlign.center,
-                          style:
-                              TextStyle(
-                            fontSize:
-                                22,
-                            fontWeight:
-                                FontWeight
-                                    .w900,
-                          ),
-                        ),
-                        const SizedBox(
-                          height: 10,
-                        ),
-                        const Text(
-                          'عندما تحجز دوراً سيظهر هنا.',
-                          textAlign:
-                              TextAlign.center,
-                          style:
-                              TextStyle(
-                            color:
-                                Colors.grey,
-                          ),
-                        ),
-                      ],
-                    )
-                  : ListView(
-                      physics:
-                          const AlwaysScrollableScrollPhysics(),
-                      padding:
-                          const EdgeInsets
-                              .all(
-                        18,
-                      ),
-                      children: [
-                        const Text(
-                          'حجوزاتك على هذا الهاتف',
-                          style:
-                              TextStyle(
-                            fontSize:
-                                20,
-                            fontWeight:
-                                FontWeight
-                                    .w900,
-                          ),
-                        ),
-
-                        const SizedBox(
-                          height: 6,
-                        ),
-
-                        const Text(
-                          'اضغط على "متابعة دوري" لمعرفة آخر حالة للطابور.',
-                          style:
-                              TextStyle(
-                            color:
-                                Colors.grey,
-                          ),
-                        ),
-
-                        const SizedBox(
-                          height: 18,
-                        ),
-
-                        ..._bookings.map(
-                          _bookingCard,
-                        ),
-                      ],
-                    ),
+                  ? ListView(physics: const AlwaysScrollableScrollPhysics(), padding: const EdgeInsets.all(24), children: const [SizedBox(height: 110), Icon(Icons.receipt_long_outlined, size: 72, color: Colors.grey), SizedBox(height: 18), Text('لا توجد حجوزات', textAlign: TextAlign.center, style: TextStyle(color: navy, fontSize: 22, fontWeight: FontWeight.w900)), SizedBox(height: 8), Text('عندما تحجز دوراً سيظهر هنا.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey))])
+                  : ListView(physics: const AlwaysScrollableScrollPhysics(), padding: const EdgeInsets.fromLTRB(16, 18, 16, 30), children: [
+                      Container(padding: const EdgeInsets.all(18), decoration: BoxDecoration(color: navy, borderRadius: BorderRadius.circular(24)), child: const Row(children: [CircleAvatar(backgroundColor: Color(0x22D7A84B), child: Icon(Icons.confirmation_number_outlined, color: gold)), SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('حجوزاتك', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)), SizedBox(height: 3), Text('تابع حالة دورك في الوقت الحقيقي.', style: TextStyle(color: Colors.white70))]))])),
+                      const SizedBox(height: 14),
+                      ..._bookings.map(_bookingCard),
+                    ]),
         ),
       ),
     );

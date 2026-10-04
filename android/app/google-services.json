@@ -7,6 +7,25 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:771071301820:android:825472aeba0bc1c9b958b9",
+        "android_client_info": {
+          "package_name": "com.abdelouadoud.hadicoiffure"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDMiYf_W1jTuU9I_8I5HFxIlsVey9SjSKQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:771071301820:android:8626d37e1ba32a77b958b9",
         "android_client_info": {
           "package_name": "com.example.hadi_lhafaf"

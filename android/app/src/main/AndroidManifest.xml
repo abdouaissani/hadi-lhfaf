@@ -1,15 +1,25 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- صلاحية البصمة / المصادقة الحيوية -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>
 
     <application
-        android:label="hadi_lhafaf"
+        android:label=" LHadi Coiffeur"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
+        <!-- AdMob -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-8672503633336720~2087160137"/>
+
+        <!-- Firebase notification channel -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="lhadi_notifications"/>
+
         <activity
-            android:name=".MainActivity"
+            android:name="io.flutter.embedding.android.FlutterActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:taskAffinity=""
@@ -37,12 +47,10 @@
     </application>
 
     <queries>
-
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
-
     </queries>
 
 </manifest>

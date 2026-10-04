@@ -1,0 +1,71 @@
+# Query: Hadi Coiffure
+# ContextLines: 1
+
+15 results - 7 files
+
+android\app\src\main\AndroidManifest.xml:
+   9      <application
+  10:         android:label="Lhadi coiffure"
+  11          android:name="${applicationName}"
+
+lib\main.dart:
+    71        debugShowCheckedModeBanner: false,
+    72:       title: 'LHadi Coiffure',
+    73  
+
+  1531                const Text(
+  1532:                 'LHadi Coiffure',
+  1533                  style: TextStyle(
+
+  1685                                  const Text(
+  1686:                                   'LHadi Coiffure',
+  1687                                    style:
+
+  2078                  const Text(
+  2079:                   'LHadi Coiffure • حلاقك في وقتك',
+  2080                    textAlign:
+
+lib\screens\admin_dashboard.dart:
+  1044                    Text(
+  1045:                     'تحديد موقع LHadi Coiffure على الخريطة',
+  1046                      style: TextStyle(
+
+  1997                Text(
+  1998:                 'LHadi Coiffure',
+  1999                  style: TextStyle(
+
+  2120                                  Text(
+  2121:                                   'إدارة LHadi Coiffure',
+  2122                                    style: TextStyle(
+
+lib\screens\admin_login_screen.dart:
+  142                            SizedBox(height: 16),
+  143:                           Text('LHadi Coiffure', style: TextStyle(color: Colors.white, fontSize: 27, fontWeight: FontWeight.w900)),
+  144                            SizedBox(height: 5),
+
+  210                      const SizedBox(height: 18),
+  211:                     const Text('LHadi Coiffure • Gestion de file d’attente', style: TextStyle(color: Colors.grey, fontSize: 12)),
+  212                    ],
+
+lib\screens\admin_screen.dart:
+  1212                    Text(
+  1213:                     'حدد أو عدّل موقع LHadi Coiffure على الخريطة',
+  1214                      style: TextStyle(
+
+  1653                  Text(
+  1654:                   'LHadi Coiffure',
+  1655                    style: TextStyle(
+
+  1724                Text(
+  1725:                 'LHadi Coiffure',
+  1726                  style: TextStyle(
+
+lib\screens\barber_location_screen.dart:
+  257                              SizedBox(width: 13),
+  258:                             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('موقع Hadi Coiffure', style: TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w900)), SizedBox(height: 4), Text('حدّد موقع المحل ليظهر للزبائن بدقة.', style: TextStyle(color: Colors.white70))])),
+  259                            ],
+
+lib\screens\booking_screen.dart:
+  579                          Text(
+  580:                           'LHadi Coiffure',
+  581                            style: TextStyle(color: Colors.white, fontSize: 25, fontWeight: FontWeight.w900),

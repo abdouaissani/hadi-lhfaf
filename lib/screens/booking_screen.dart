@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'my_bookings_screen.dart';
 import '../models/service_model.dart';
 import '../services/customer_storage.dart';
@@ -15,8 +16,7 @@ class BookingScreen extends StatefulWidget {
       _BookingScreenState();
 }
 
-class _BookingScreenState
-    extends State<BookingScreen> {
+class _BookingScreenState extends State<BookingScreen> {
   final SupabaseService _service =
       SupabaseService();
 
@@ -37,7 +37,6 @@ class _BookingScreenState
   @override
   void initState() {
     super.initState();
-
     _loadServices();
   }
 
@@ -47,12 +46,25 @@ class _BookingScreenState
 
   Future<void> _loadServices() async {
     try {
-      final String barberId =
+      final String? barberId =
           await _service.getSingleBarber();
+
+      if (barberId == null ||
+          barberId.trim().isEmpty) {
+        throw Exception('NO_BARBER_FOUND');
+      }
+
+      debugPrint(
+        'CUSTOMER BARBER ID: $barberId',
+      );
 
       final List<ServiceModel> services =
           await _service.getServices(
         barberId,
+      );
+
+      debugPrint(
+        'CUSTOMER SERVICES: ${services.length}',
       );
 
       if (!mounted) return;
@@ -65,6 +77,8 @@ class _BookingScreenState
         if (_services.isNotEmpty) {
           _selectedServiceId =
               _services.first.id;
+        } else {
+          _selectedServiceId = null;
         }
       });
     } catch (e, stackTrace) {
@@ -79,7 +93,10 @@ class _BookingScreenState
       if (!mounted) return;
 
       setState(() {
+        _services = [];
         _loadingServices = false;
+        _barberId = null;
+        _selectedServiceId = null;
       });
 
       if (e.toString().contains(
@@ -97,7 +114,85 @@ class _BookingScreenState
   }
 
   // =========================================================
-  // BOOK
+  // REFRESH
+  // =========================================================
+
+  Future<void> _refresh() async {
+    if (_booking) return;
+
+    try {
+      String? barberId = _barberId;
+
+      // -------------------------------------------------------
+      // GET BARBER IF NOT AVAILABLE
+      // -------------------------------------------------------
+
+      if (barberId == null ||
+          barberId.trim().isEmpty) {
+        barberId =
+            await _service.getSingleBarber();
+
+        if (!mounted) return;
+
+        if (barberId == null ||
+            barberId.trim().isEmpty) {
+          throw Exception('NO_BARBER_FOUND');
+        }
+
+        setState(() {
+          _barberId = barberId;
+        });
+      }
+
+      // -------------------------------------------------------
+      // GET SERVICES
+      // -------------------------------------------------------
+
+      final List<ServiceModel> services =
+          await _service.getServices(
+        barberId,
+      );
+
+      debugPrint(
+        'REFRESH SERVICES: ${services.length}',
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _services = services;
+        _loadingServices = false;
+
+        if (_services.isEmpty) {
+          _selectedServiceId = null;
+        } else if (!_services.any(
+          (service) =>
+              service.id ==
+              _selectedServiceId,
+        )) {
+          _selectedServiceId =
+              _services.first.id;
+        }
+      });
+    } catch (e, stackTrace) {
+      debugPrint(
+        'REFRESH ERROR: $e',
+      );
+
+      debugPrint(
+        '$stackTrace',
+      );
+
+      if (!mounted) return;
+
+      _showMessage(
+        'تعذر تحديث الخدمات',
+      );
+    }
+  }
+
+  // =========================================================
+  // BOOK QUEUE
   // =========================================================
 
   Future<void> _bookQueue() async {
@@ -111,12 +206,21 @@ class _BookingScreenState
     final String phone =
         _phoneController.text.trim();
 
-    if (_barberId == null) {
+    // -------------------------------------------------------
+    // BARBER
+    // -------------------------------------------------------
+
+    if (_barberId == null ||
+        _barberId!.trim().isEmpty) {
       _showMessage(
         'تعذر العثور على الحلاق',
       );
       return;
     }
+
+    // -------------------------------------------------------
+    // NAME
+    // -------------------------------------------------------
 
     if (name.isEmpty) {
       _showMessage(
@@ -125,6 +229,10 @@ class _BookingScreenState
       return;
     }
 
+    // -------------------------------------------------------
+    // PHONE
+    // -------------------------------------------------------
+
     if (phone.isEmpty) {
       _showMessage(
         'أدخل رقم الهاتف',
@@ -132,7 +240,12 @@ class _BookingScreenState
       return;
     }
 
-    if (_selectedServiceId == null) {
+    // -------------------------------------------------------
+    // SERVICE
+    // -------------------------------------------------------
+
+    if (_selectedServiceId == null ||
+        _selectedServiceId!.trim().isEmpty) {
       _showMessage(
         'اختر الخدمة',
       );
@@ -154,6 +267,10 @@ class _BookingScreenState
         serviceId: _selectedServiceId!,
         name: name,
         phone: phone,
+      );
+
+      debugPrint(
+        'BOOKING RESULT: $result',
       );
 
       // =======================================================
@@ -184,7 +301,7 @@ class _BookingScreenState
       );
 
       // =======================================================
-      // SAVE TOKEN IF AVAILABLE
+      // SAVE CUSTOMER TOKEN
       // =======================================================
 
       final String? token =
@@ -197,9 +314,17 @@ class _BookingScreenState
         await CustomerStorage.saveToken(
           token,
         );
+
+        debugPrint(
+          'CUSTOMER TOKEN SAVED',
+        );
       }
 
       if (!mounted) return;
+
+      // =======================================================
+      // SUCCESS MESSAGE
+      // =======================================================
 
       _showMessage(
         'تم حجز دورك بنجاح 🎫',
@@ -214,7 +339,7 @@ class _BookingScreenState
       if (!mounted) return;
 
       // =======================================================
-      // OPEN QUEUE
+      // OPEN QUEUE SCREEN
       // =======================================================
 
       Navigator.of(context).pushReplacement(
@@ -238,25 +363,71 @@ class _BookingScreenState
       final String error =
           e.toString();
 
+      // -------------------------------------------------------
+      // QUEUE CLOSED
+      // -------------------------------------------------------
+
       if (error.contains(
         'QUEUE_CLOSED',
       )) {
         _showMessage(
           'الحجز مغلق حالياً',
         );
-      } else if (error.contains(
+      }
+
+      // -------------------------------------------------------
+      // QUEUE FULL
+      // -------------------------------------------------------
+
+      else if (error.contains(
         'QUEUE_FULL',
       )) {
         _showMessage(
           'الطابور ممتلئ حالياً',
         );
-      } else if (error.contains(
+      }
+
+      // -------------------------------------------------------
+      // INVALID SERVICE
+      // -------------------------------------------------------
+
+      else if (error.contains(
         'INVALID_SERVICE',
       )) {
         _showMessage(
           'الخدمة غير متاحة',
         );
-      } else {
+      }
+
+      // -------------------------------------------------------
+      // BARBER NOT FOUND
+      // -------------------------------------------------------
+
+      else if (error.contains(
+        'BARBER_NOT_FOUND',
+      )) {
+        _showMessage(
+          'الحلاق غير موجود',
+        );
+      }
+
+      // -------------------------------------------------------
+      // TICKET NOT FOUND
+      // -------------------------------------------------------
+
+      else if (error.contains(
+        'TICKET_ID_NOT_FOUND',
+      )) {
+        _showMessage(
+          'تم الحجز لكن تعذر الحصول على رقم الدور',
+        );
+      }
+
+      // -------------------------------------------------------
+      // GENERIC ERROR
+      // -------------------------------------------------------
+
+      else {
         _showMessage(
           'حدث خطأ أثناء الحجز',
         );
@@ -277,6 +448,8 @@ class _BookingScreenState
   void _showMessage(
     String message,
   ) {
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context)
         .hideCurrentSnackBar();
 
@@ -310,272 +483,219 @@ class _BookingScreenState
   // =========================================================
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
+    const navy = Color(0xFF0D1726);
+    const gold = Color(0xFFD7A84B);
     final bool canBook =
         !_booking &&
         !_loadingServices &&
         _barberId != null &&
+        _barberId!.isNotEmpty &&
         _services.isNotEmpty &&
         _selectedServiceId != null;
+
+    InputDecoration fieldDecoration({
+      required String label,
+      required IconData icon,
+      String? hint,
+    }) {
+      return InputDecoration(
+        labelText: label,
+        hintText: hint,
+        prefixIcon: Icon(icon, color: navy),
+        filled: true,
+        fillColor: const Color(0xFFF7F8FA),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: Color(0xFFE7E9EE)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: gold, width: 1.5),
+        ),
+      );
+    }
 
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
+        backgroundColor: const Color(0xFFF5F6F8),
         appBar: AppBar(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.white,
+          elevation: 0,
+          centerTitle: true,
           title: const Text(
             'حجز دور',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: navy, fontWeight: FontWeight.w900),
           ),
-          centerTitle: true,
+          actions: [
+            IconButton(
+              tooltip: 'تحديث الخدمات',
+              onPressed: _booking ? null : _refresh,
+              icon: const Icon(Icons.refresh_rounded, color: navy),
+            ),
+          ],
         ),
         body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 15),
-
-                const Icon(
-                  Icons.content_cut,
-                  size: 70,
-                ),
-
-                const SizedBox(height: 15),
-
-                const Text(
-                  'احجز دورك بسهولة',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                const SizedBox(height: 8),
-
-                const Text(
-                  'أدخل معلوماتك واختر الخدمة',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.grey,
-                  ),
-                ),
-
-                const SizedBox(height: 30),
-
-                // =================================================
-                // NAME
-                // =================================================
-
-                TextField(
-                  controller: _nameController,
-                  enabled: !_booking,
-                  textInputAction:
-                      TextInputAction.next,
-                  decoration: InputDecoration(
-                    labelText: 'الاسم واللقب',
-                    hintText: 'مثال: محمد بن علي',
-                    prefixIcon: const Icon(
-                      Icons.person_outline,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius:
-                          BorderRadius.circular(14),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // =================================================
-                // PHONE
-                // =================================================
-
-                TextField(
-                  controller: _phoneController,
-                  enabled: !_booking,
-                  keyboardType:
-                      TextInputType.phone,
-                  textInputAction:
-                      TextInputAction.done,
-                  decoration: InputDecoration(
-                    labelText: 'رقم الهاتف',
-                    hintText: '05xxxxxxxx',
-                    prefixIcon: const Icon(
-                      Icons.phone_outlined,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius:
-                          BorderRadius.circular(14),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // =================================================
-                // SERVICES
-                // =================================================
-
-                if (_loadingServices)
-                  const Center(
-                    child: Padding(
-                      padding:
-                          EdgeInsets.all(20),
-                      child:
-                          CircularProgressIndicator(),
-                    ),
-                  )
-                else if (_services.isEmpty)
+          child: RefreshIndicator(
+            color: gold,
+            onRefresh: _refresh,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                   Container(
-                    padding:
-                        const EdgeInsets.all(18),
-                    decoration:
-                        BoxDecoration(
-                      borderRadius:
-                          BorderRadius.circular(14),
-                      color:
-                          Colors.grey.shade100,
-                    ),
-                    child: const Text(
-                      'لا توجد خدمات متاحة حالياً',
-                      textAlign:
-                          TextAlign.center,
-                    ),
-                  )
-                else
-                  DropdownButtonFormField<String>(
-                    initialValue:
-                        _selectedServiceId,
-                    decoration:
-                        InputDecoration(
-                      labelText:
-                          'اختر الخدمة',
-                      prefixIcon:
-                          const Icon(
-                        Icons.content_cut,
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topRight,
+                        end: Alignment.bottomLeft,
+                        colors: [Color(0xFF15233A), Color(0xFF0D1726)],
                       ),
-                      border:
-                          OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(
-                          14,
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: [
+                        BoxShadow(
+                          color: navy.withValues(alpha: .18),
+                          blurRadius: 24,
+                          offset: const Offset(0, 10),
                         ),
-                      ),
+                      ],
                     ),
-                    items:
-                        _services.map(
-                      (service) {
-                        return DropdownMenuItem<
-                            String>(
-                          value:
-                              service.id,
-                          child: Text(
-                            '${service.name} - ${service.price.toStringAsFixed(0)} DA',
-                          ),
-                        );
-                      },
-                    ).toList(),
-                    onChanged: _booking
-                        ? null
-                        : (value) {
-                            setState(() {
-                              _selectedServiceId =
-                                  value;
-                            });
-                          },
+                    child: const Column(
+                      children: [
+                        CircleAvatar(
+                          radius: 32,
+                          backgroundColor: Color(0x22D7A84B),
+                          child: Icon(Icons.content_cut_rounded, color: gold, size: 30),
+                        ),
+                        SizedBox(height: 14),
+                        Text(
+                          'LHadi Coiffure',
+                          style: TextStyle(color: Colors.white, fontSize: 25, fontWeight: FontWeight.w900),
+                        ),
+                        SizedBox(height: 5),
+                        Text(
+                          'احجز دورك بسهولة وبدون انتظار',
+                          style: TextStyle(color: Colors.white70, fontSize: 14),
+                        ),
+                      ],
+                    ),
                   ),
-
-                const SizedBox(height: 30),
-
-                // =================================================
-                // BOOK BUTTON
-                // =================================================
-
-                SizedBox(
-                  height: 58,
-                  child: FilledButton.icon(
-                    onPressed:
-                        canBook
-                            ? _bookQueue
-                            : null,
-                    icon: _booking
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child:
-                                CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color:
-                                  Colors.white,
-                            ),
+                  const SizedBox(height: 18),
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: const Color(0xFFE7E9EE)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text('بيانات الزبون', style: TextStyle(color: navy, fontSize: 18, fontWeight: FontWeight.w900)),
+                        const SizedBox(height: 15),
+                        TextField(
+                          controller: _nameController,
+                          enabled: !_booking,
+                          textInputAction: TextInputAction.next,
+                          decoration: fieldDecoration(label: 'الاسم واللقب', icon: Icons.person_outline_rounded, hint: 'مثال: محمد بن علي'),
+                        ),
+                        const SizedBox(height: 13),
+                        TextField(
+                          controller: _phoneController,
+                          enabled: !_booking,
+                          keyboardType: TextInputType.phone,
+                          textInputAction: TextInputAction.done,
+                          decoration: fieldDecoration(label: 'رقم الهاتف', icon: Icons.phone_outlined, hint: '05xxxxxxxx'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: const Color(0xFFE7E9EE)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.content_cut_rounded, color: navy),
+                            SizedBox(width: 10),
+                            Text('اختر الخدمة', style: TextStyle(color: navy, fontSize: 18, fontWeight: FontWeight.w900)),
+                          ],
+                        ),
+                        const SizedBox(height: 13),
+                        if (_loadingServices)
+                          const Padding(
+                            padding: EdgeInsets.all(20),
+                            child: Center(child: CircularProgressIndicator(color: gold)),
                           )
-                        : const Icon(
-                            Icons
-                                .confirmation_number,
+                        else if (_services.isEmpty)
+                          Container(
+                            padding: const EdgeInsets.all(18),
+                            decoration: BoxDecoration(color: const Color(0xFFF7F8FA), borderRadius: BorderRadius.circular(16)),
+                            child: const Text('لا توجد خدمات متاحة حالياً', textAlign: TextAlign.center),
+                          )
+                        else
+                          DropdownButtonFormField<String>(
+                            initialValue: _selectedServiceId,
+                            decoration: fieldDecoration(label: 'الخدمة', icon: Icons.spa_outlined),
+                            items: _services.map((service) {
+                              return DropdownMenuItem<String>(
+                                value: service.id,
+                                child: Text('${service.name}  •  ${service.price.toStringAsFixed(0)} DA', overflow: TextOverflow.ellipsis),
+                              );
+                            }).toList(),
+                            onChanged: _booking ? null : (value) => setState(() => _selectedServiceId = value),
                           ),
-                    label: Text(
-                      _booking
-                          ? 'جاري الحجز...'
-                          : 'احجز دوري',
-                      style:
-                          const TextStyle(
-                        fontSize: 18,
-                        fontWeight:
-                            FontWeight.bold,
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  SizedBox(
+                    height: 58,
+                    child: FilledButton.icon(
+                      onPressed: canBook ? _bookQueue : null,
+                      icon: _booking
+                          ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Icon(Icons.confirmation_number_outlined),
+                      label: Text(_booking ? 'جاري الحجز...' : 'احجز دوري', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: navy,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: const Color(0xFFD7D9DE),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                       ),
                     ),
                   ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // =================================================
-                // MY BOOKINGS BUTTON
-                // =================================================
-
-                OutlinedButton.icon(
-                  onPressed: _booking
-                      ? null
-                      : () {
-                          Navigator.of(
-                            context,
-                          ).push(
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                   MyBookingsScreen(),
-                            ),
-                          );
-                        },
-                  icon: const Icon(
-                    Icons.receipt_long_outlined,
-                  ),
-                  label: const Text(
-                    'عرض حجوزاتي',
-                    style: TextStyle(
-                      fontWeight:
-                          FontWeight.bold,
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: _booking ? null : () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyBookingsScreen())),
+                    icon: const Icon(Icons.receipt_long_outlined),
+                    label: const Text('حجوزاتي', style: TextStyle(fontWeight: FontWeight.w800)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: navy,
+                      minimumSize: const Size.fromHeight(52),
+                      side: const BorderSide(color: Color(0xFFD9DCE2)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                     ),
                   ),
-                ),
-
-                const SizedBox(height: 20),
-
-                const Text(
-                  'حجزك سيبقى محفوظاً على هذا الهاتف',
-                  textAlign:
-                      TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.grey,
-                  ),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  const Text('حجزك محفوظ على هذا الهاتف ويمكنك متابعته في أي وقت.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 12.5)),
+                ],
+              ),
             ),
           ),
         ),

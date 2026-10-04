@@ -1,8 +1,8 @@
-name: hadi_lhafaf
+name: LHadi_Coiffure
 description: تطبيق حجز أدوار الحلاق
 publish_to: "none"
 
-version: 1.0.0+1
+version: 1.0.0+8
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
@@ -24,11 +24,18 @@ dependencies:
   firebase_core: ^4.0.0
   firebase_messaging: ^16.0.0
 
+  # AdMob
+  google_mobile_ads: ^7.0.0
+
   # Local notifications
-  flutter_local_notifications: ^19.4.0
+  flutter_local_notifications: 17.2.4
 
   # Fingerprint / Face ID
   local_auth: ^3.0.2
+
+  # OpenStreetMap
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
 
 dev_dependencies:
   flutter_test:
